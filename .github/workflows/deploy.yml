@@ -25,11 +25,11 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
 
       - name: Build Angular app
         run: |
-          npm run build -- --base-href "/REPO-NAME/"
+          npm run build -- --base-href "/metadata-viewer/"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
