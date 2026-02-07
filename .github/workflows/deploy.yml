@@ -29,12 +29,12 @@ jobs:
 
       - name: Build Angular app
         run: |
-          npm run build -- --base-href "/metadata-viewer/"
+          npm run build -- --base-href "/metadata-viewer/" --output-path=dist
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/doc-metatada-viewer/browser
+          path: dist
 
   deploy:
     environment:
