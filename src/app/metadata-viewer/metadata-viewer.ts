@@ -143,7 +143,6 @@ export class MetadataViewerComponent {
     const attributes: AttributeRow[] = [
       { name: 'ID (Unsigned)', value: id },
       { name: 'Alias', value: alias },
-      { name: 'Tag', value: tag },
     ];
 
     Object.keys(meta).forEach((key) => {
@@ -163,7 +162,7 @@ export class MetadataViewerComponent {
     }
 
     return {
-      title: alias || `Control ${id}`,
+      title: `${alias} - ${meta['Tag']}`,
       tag,
       attributes,
       children,
