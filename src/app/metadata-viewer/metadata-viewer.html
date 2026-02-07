@@ -1,0 +1,101 @@
+<div class="app-container">
+  <header class="app-header">
+    <div class="header-left">
+      <h1>Metadata Viewer</h1>
+      <div class="file-name" *ngIf="selectedFileName">
+        {{ selectedFileName }}
+      </div>
+    </div>
+
+    <label class="upload-btn">
+      Upload Word File
+      <input type="file" accept=".docx" (change)="onFileSelected($event)" />
+    </label>
+  </header>
+
+  <div class="loading" *ngIf="loading">
+    Processing document...
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && !controls.length">
+    <div class="empty-icon">📄</div>
+    <div class="empty-text">
+      Please upload a Word file to view content control metadata
+    </div>
+  </div>
+
+  <div class="main-layout" *ngIf="controls.length">
+    <!-- TREE SIDEBAR -->
+    <aside class="sidebar tree-sidebar">
+      <ng-container *ngFor="let c of controls">
+        <div class="tree-node">
+          <div class="tree-row" (click)="toggleNode(c, $event)">
+            <span class="tree-toggle" *ngIf="c.children?.length">
+              {{ c.expanded ? '▼' : '▶' }}
+            </span>
+
+            <span
+              class="tree-label"
+              (click)="selectControl(c); $event.stopPropagation()"
+              [class.active]="selectedControl === c"
+            >
+              {{ c.title }}
+            </span>
+          </div>
+
+          <div class="tree-children" *ngIf="c.expanded">
+            <ng-container
+              *ngTemplateOutlet="treeTemplate; context: { $implicit: c.children }"
+            ></ng-container>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-template #treeTemplate let-nodes>
+        <div *ngFor="let node of nodes" class="tree-node">
+          <div class="tree-row" (click)="toggleNode(node, $event)">
+            <span class="tree-toggle" *ngIf="node.children?.length">
+              {{ node.expanded ? '▼' : '▶' }}
+            </span>
+
+            <span
+              class="tree-label"
+              (click)="selectControl(node); $event.stopPropagation()"
+              [class.active]="selectedControl === node"
+            >
+              {{ node.title }}
+            </span>
+          </div>
+
+          <div class="tree-children" *ngIf="node.expanded">
+            <ng-container
+              *ngTemplateOutlet="treeTemplate; context: { $implicit: node.children }"
+            ></ng-container>
+          </div>
+        </div>
+      </ng-template>
+    </aside>
+
+    <!-- RIGHT PANEL -->
+    <section class="content">
+      <div class="card" *ngIf="selectedControl">
+        <h2 class="card-title">{{ selectedControl.title }}</h2>
+
+        <table class="meta-table">
+          <thead>
+            <tr>
+              <th>Attribute</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let attr of selectedControl.attributes">
+              <td class="attr-name">{{ attr.name }}</td>
+              <td class="attr-value">{{ attr.value }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>

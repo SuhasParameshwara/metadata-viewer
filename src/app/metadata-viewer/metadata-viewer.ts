@@ -1,0 +1,182 @@
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { unzipSync, strFromU8, gunzipSync } from 'fflate';
+
+interface AttributeRow {
+  name: string;
+  value: string;
+}
+
+interface ContentControl {
+  title: string;
+  tag: string;
+  attributes: AttributeRow[];
+  children?: ContentControl[];
+  expanded?: boolean;
+}
+
+@Component({
+  selector: 'app-metadata-viewer',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './metadata-viewer.html',
+  styleUrl: './metadata-viewer.scss',
+})
+export class MetadataViewerComponent {
+  controls: ContentControl[] = [];
+  selectedControl?: ContentControl;
+  loading = false;
+  selectedFileName = '';
+  private cdr = inject(ChangeDetectorRef);
+
+  async onFileSelected(event: any) {
+    const file: File = event.target.files[0];
+    if (!file) return;
+
+    this.selectedFileName = file.name;
+    this.loading = true;
+
+    const buffer = await file.arrayBuffer();
+    const zip = unzipSync(new Uint8Array(buffer));
+
+    const parser = new DOMParser();
+
+    // 1. Read document.xml
+    const docXml = strFromU8(zip['word/document.xml']);
+    const xmlDoc = parser.parseFromString(docXml, 'application/xml');
+
+    // 2. Extract metadata from customXml
+    const metadataMap: Record<string, any> = {};
+
+    Object.keys(zip).forEach((path) => {
+      if (path.startsWith('customXml/item') && path.endsWith('.xml')) {
+        try {
+          const rawXml = strFromU8(zip[path]);
+          const xmlDoc = parser.parseFromString(rawXml, 'application/xml');
+          const nodes = xmlDoc.getElementsByTagName('Node');
+
+          for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+
+            const id =
+              node.getAttribute('p2:id') || node.getAttribute('id');
+
+            if (!id) continue;
+
+            const base64 = node.textContent?.trim();
+            if (!base64) continue;
+
+            const decoded = Uint8Array.from(atob(base64), (c) =>
+              c.charCodeAt(0)
+            );
+
+            const decompressed = gunzipSync(decoded);
+            const metadataXml = strFromU8(decompressed);
+
+            const metaDoc = parser.parseFromString(
+              metadataXml,
+              'application/xml'
+            );
+            const metadataNode =
+              metaDoc.getElementsByTagName('Metadata')[0];
+            if (!metadataNode) continue;
+
+            const meta: any = {};
+            for (let j = 0; j < metadataNode.children.length; j++) {
+              const child = metadataNode.children[j];
+              meta[child.nodeName] = child.textContent || '';
+            }
+
+            metadataMap[id] = meta;
+          }
+        } catch (e) {
+          console.warn('Failed to parse', path, e);
+        }
+      }
+    });
+
+    // 3. Build tree recursively
+    const body = xmlDoc.getElementsByTagName('w:body')[0];
+    const results = this.buildTree(body, metadataMap);
+
+    this.controls = results;
+    this.selectedControl = results[0];
+    this.loading = false;
+    this.cdr.markForCheck();
+  }
+
+  // Recursive tree builder
+  private buildTree(parent: Element, metadataMap: Record<string, any>): ContentControl[] {
+    const result: ContentControl[] = [];
+
+    const children = parent.children;
+
+    for (let i = 0; i < children.length; i++) {
+      const node = children[i];
+
+      if (node.localName === 'sdt') {
+        const control = this.createControl(node, metadataMap);
+        result.push(control);
+      } else {
+        // search deeper
+        result.push(...this.buildTree(node, metadataMap));
+      }
+    }
+
+    return result;
+  }
+
+  // Create single control with recursion
+  private createControl(node: Element, metadataMap: Record<string, any>): ContentControl {
+    const pr = node.getElementsByTagName('w:sdtPr')[0];
+
+    const idNode = pr?.getElementsByTagName('w:id')[0];
+    const aliasNode = pr?.getElementsByTagName('w:alias')[0];
+    const tagNode = pr?.getElementsByTagName('w:tag')[0];
+
+    const id = idNode?.getAttribute('w:val') || '';
+    const alias = aliasNode?.getAttribute('w:val') || '';
+    const tag = tagNode?.getAttribute('w:val') || '';
+
+    const meta = metadataMap[id] || {};
+
+    const attributes: AttributeRow[] = [
+      { name: 'ID (Unsigned)', value: id },
+      { name: 'Alias', value: alias },
+      { name: 'Tag', value: tag },
+    ];
+
+    Object.keys(meta).forEach((key) => {
+      attributes.push({
+        name: key,
+        value: String(meta[key] ?? ''),
+      });
+    });
+
+    // find nested controls
+    const children: ContentControl[] = [];
+    const content = node.getElementsByTagName('w:sdtContent')[0];
+
+    if (content) {
+      const nested = this.buildTree(content, metadataMap);
+      children.push(...nested);
+    }
+
+    return {
+      title: alias || `Control ${id}`,
+      tag,
+      attributes,
+      children,
+      expanded: false,
+    };
+  }
+
+  selectControl(control: ContentControl) {
+    this.selectedControl = control;
+  }
+
+  toggleNode(node: ContentControl, event: Event) {
+    event.stopPropagation();
+    node.expanded = !node.expanded;
+  }
+}
