@@ -24,14 +24,8 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Use public npm registry
-        run: npm config set registry https://registry.npmjs.org/
-      
-      - name: Debug npm registry
-        run: npm config list
-
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci
 
       - name: Build Angular app
         run: |
