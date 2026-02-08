@@ -30,6 +30,9 @@ export class MetadataViewerComponent {
   selectedFileName = '';
   private cdr = inject(ChangeDetectorRef);
   decodedValues: Record<string, string> = {};
+  totalFields = 0;
+  totalClauses = 0;
+  totalTables = 0;
 
   async onFileSelected(event: any) {
     const file: File = event.target.files[0];
@@ -39,7 +42,9 @@ export class MetadataViewerComponent {
       alert('Only .doc or .docx files are supported.');
       return;
     }
-
+    this.totalFields = 0;
+    this.totalClauses = 0;
+    this.totalTables = 0;
     this.selectedFileName = file.name;
     this.loading = true;
 
@@ -208,6 +213,18 @@ export class MetadataViewerComponent {
     const tag = tagNode?.getAttribute('w:val') || '';
 
     const meta = metadataMap[id] || {};
+
+
+    // ---- COUNT LOGIC ----
+    const type = (meta['Alias'] || alias || '').toLowerCase();
+
+    if (type.includes('field')) {
+      this.totalFields++;
+    } else if (type.includes('clause')) {
+      this.totalClauses++;
+    } else if (type.includes('repeat')) {
+      this.totalTables++;
+    }
 
     const attributes: AttributeRow[] = [
       { name: 'ID (Unsigned)', value: id },

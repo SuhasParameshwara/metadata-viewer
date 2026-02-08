@@ -303,3 +303,52 @@ $border: #e0e0e0;
     color: #888;
   }
 }
+
+.stats {
+  margin-top: 4px;
+  font-size: 13px;
+  opacity: 0.9;
+
+  span {
+    margin-right: 16px;
+  }
+}
+
+.app-header.compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #3f51b5, #5c6bc0);
+  color: white;
+
+  h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .file-name {
+    font-size: 12px;
+    opacity: 0.85;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+}
+
+.stat-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 500;
+}

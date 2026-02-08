@@ -1,5 +1,5 @@
 <div class="app-container">
-  <header class="app-header">
+  <header class="app-header compact">
     <div class="header-left">
       <h1>Metadata Viewer 2.0</h1>
       <div class="file-name" *ngIf="selectedFileName">
@@ -7,11 +7,26 @@
       </div>
     </div>
 
-    <label class="upload-btn">
-      Upload Word File
-      <input type="file" accept=".docx,.doc" (change)="onFileSelected($event)" />
-    </label>
+    <div class="header-right">
+      <div class="stat-badges" *ngIf="controls.length">
+        <span class="badge">
+          {{ totalFields }} Fields
+        </span>
+        <span class="badge">
+          {{ totalClauses }} Clauses
+        </span>
+        <span class="badge">
+          {{ totalTables }} Tables
+        </span>
+      </div>
+
+      <label class="upload-btn">
+        Upload Word File
+        <input type="file" accept=".doc,.docx" (change)="onFileSelected($event)" />
+      </label>
+    </div>
   </header>
+
 
   <!-- Loading -->
   <div class="loading" *ngIf="loading">
@@ -19,12 +34,8 @@
   </div>
 
   <!-- Drag & Drop Zone -->
-  <div
-    class="drop-zone"
-    *ngIf="!loading && !controls.length"
-    (dragover)="$event.preventDefault()"
-    (drop)="onFileDrop($event)"
-  >
+  <div class="drop-zone" *ngIf="!loading && !controls.length" (dragover)="$event.preventDefault()"
+    (drop)="onFileDrop($event)">
     <div class="drop-icon">📄</div>
     <div class="drop-text">
       Drag & drop a Word file here
@@ -45,19 +56,14 @@
               {{ c.expanded ? '▼' : '▶' }}
             </span>
 
-            <span
-              class="tree-label"
-              (click)="selectControl(c); $event.stopPropagation()"
-              [class.active]="selectedControl === c"
-            >
+            <span class="tree-label" (click)="selectControl(c); $event.stopPropagation()"
+              [class.active]="selectedControl === c">
               {{ c.title }}
             </span>
           </div>
 
           <div class="tree-children" *ngIf="c.expanded">
-            <ng-container
-              *ngTemplateOutlet="treeTemplate; context: { $implicit: c.children }"
-            ></ng-container>
+            <ng-container *ngTemplateOutlet="treeTemplate; context: { $implicit: c.children }"></ng-container>
           </div>
         </div>
       </ng-container>
@@ -70,19 +76,14 @@
               {{ node.expanded ? '▼' : '▶' }}
             </span>
 
-            <span
-              class="tree-label"
-              (click)="selectControl(node); $event.stopPropagation()"
-              [class.active]="selectedControl === node"
-            >
+            <span class="tree-label" (click)="selectControl(node); $event.stopPropagation()"
+              [class.active]="selectedControl === node">
               {{ node.title }}
             </span>
           </div>
 
           <div class="tree-children" *ngIf="node.expanded">
-            <ng-container
-              *ngTemplateOutlet="treeTemplate; context: { $implicit: node.children }"
-            ></ng-container>
+            <ng-container *ngTemplateOutlet="treeTemplate; context: { $implicit: node.children }"></ng-container>
           </div>
         </div>
       </ng-template>
@@ -111,18 +112,13 @@
                 </div>
 
                 <!-- BaseValue with decode -->
-                <div
-                  *ngIf="attr.name === 'BaseValue' && selectedControl.title.includes('Clause')"
-                  class="base-value-container"
-                >
+                <div *ngIf="attr.name === 'BaseValue' && selectedControl.title.includes('Clause')"
+                  class="base-value-container">
                   <div class="base64-text">
                     {{ attr.value }}
                   </div>
 
-                  <button
-                    class="decode-btn"
-                    (click)="decodeBaseValue(attr)"
-                  >
+                  <button class="decode-btn" (click)="decodeBaseValue(attr)">
                     Decode
                   </button>
 
