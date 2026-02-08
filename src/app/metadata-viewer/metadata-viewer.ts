@@ -167,7 +167,7 @@ export class MetadataViewerComponent {
       });
 
       this.controls.unshift({
-        title: 'DocumentProperty',
+        title: 'Document Property',
         tag: '',
         attributes,
         children: [],
