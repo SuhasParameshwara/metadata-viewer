@@ -1,7 +1,7 @@
 <div class="app-container">
   <header class="app-header">
     <div class="header-left">
-      <h1>Metadata Viewer</h1>
+      <h1>Metadata Viewer 2.0</h1>
       <div class="file-name" *ngIf="selectedFileName">
         {{ selectedFileName }}
       </div>
@@ -34,19 +34,14 @@
               {{ c.expanded ? '▼' : '▶' }}
             </span>
 
-            <span
-              class="tree-label"
-              (click)="selectControl(c); $event.stopPropagation()"
-              [class.active]="selectedControl === c"
-            >
+            <span class="tree-label" (click)="selectControl(c); $event.stopPropagation()"
+              [class.active]="selectedControl === c">
               {{ c.title }}
             </span>
           </div>
 
           <div class="tree-children" *ngIf="c.expanded">
-            <ng-container
-              *ngTemplateOutlet="treeTemplate; context: { $implicit: c.children }"
-            ></ng-container>
+            <ng-container *ngTemplateOutlet="treeTemplate; context: { $implicit: c.children }"></ng-container>
           </div>
         </div>
       </ng-container>
@@ -58,19 +53,14 @@
               {{ node.expanded ? '▼' : '▶' }}
             </span>
 
-            <span
-              class="tree-label"
-              (click)="selectControl(node); $event.stopPropagation()"
-              [class.active]="selectedControl === node"
-            >
+            <span class="tree-label" (click)="selectControl(node); $event.stopPropagation()"
+              [class.active]="selectedControl === node">
               {{ node.title }}
             </span>
           </div>
 
           <div class="tree-children" *ngIf="node.expanded">
-            <ng-container
-              *ngTemplateOutlet="treeTemplate; context: { $implicit: node.children }"
-            ></ng-container>
+            <ng-container *ngTemplateOutlet="treeTemplate; context: { $implicit: node.children }"></ng-container>
           </div>
         </div>
       </ng-template>
@@ -91,9 +81,34 @@
           <tbody>
             <tr *ngFor="let attr of selectedControl.attributes">
               <td class="attr-name">{{ attr.name }}</td>
-              <td class="attr-value">{{ attr.value }}</td>
+
+              <td class="attr-value">
+                <!-- Normal display -->
+                <div *ngIf="attr.name !== 'BaseValue'">
+                  {{ attr.value }}
+                </div>
+
+                <!-- BaseValue with decode button -->
+                <div *ngIf="attr.name === 'BaseValue' && selectedControl.title.includes('Clause')">
+                  <div class="base-value-container">
+                    <div class="base64-text">
+                      {{ attr.value }}
+                    </div>
+
+                    <button class="decode-btn" (click)="decodeBaseValue(attr)">
+                      Decode
+                    </button>
+
+                    <div class="decoded-output" *ngIf="attr.decoded">
+                      {{ attr.decoded }}
+                    </div>
+                  </div>
+                </div>
+              </td>
             </tr>
           </tbody>
+
+
         </table>
       </div>
     </section>

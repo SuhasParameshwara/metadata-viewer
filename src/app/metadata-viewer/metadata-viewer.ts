@@ -5,6 +5,7 @@ import { unzipSync, strFromU8, gunzipSync } from 'fflate';
 interface AttributeRow {
   name: string;
   value: string;
+  decoded?: string;
 }
 
 interface ContentControl {
@@ -28,6 +29,7 @@ export class MetadataViewerComponent {
   loading = false;
   selectedFileName = '';
   private cdr = inject(ChangeDetectorRef);
+  decodedValues: Record<string, string> = {};
 
   async onFileSelected(event: any) {
     const file: File = event.target.files[0];
@@ -53,6 +55,10 @@ export class MetadataViewerComponent {
         try {
           const rawXml = strFromU8(zip[path]);
           const xmlDoc = parser.parseFromString(rawXml, 'application/xml');
+
+          // -------------------------------
+          // CASE 1: Clause/Field metadata
+          // -------------------------------
           const nodes = xmlDoc.getElementsByTagName('Node');
 
           for (let i = 0; i < nodes.length; i++) {
@@ -89,17 +95,75 @@ export class MetadataViewerComponent {
 
             metadataMap[id] = meta;
           }
+
+          // --------------------------------
+          // CASE 2: Document Properties
+          // --------------------------------
+          const docProps =
+            xmlDoc.getElementsByTagName('Properties')[0];
+
+          if (docProps) {
+            const base64 = docProps.textContent?.trim();
+
+            if (base64) {
+              const decoded = Uint8Array.from(atob(base64), (c) =>
+                c.charCodeAt(0)
+              );
+
+              const decompressed = gunzipSync(decoded);
+              const metadataXml = strFromU8(decompressed);
+
+              const metaDoc = parser.parseFromString(
+                metadataXml,
+                'application/xml'
+              );
+
+              const root = metaDoc.documentElement;
+
+              const meta: any = {};
+              for (let j = 0; j < root.children.length; j++) {
+                const child = root.children[j];
+                meta[child.nodeName] = child.textContent || '';
+              }
+
+              // store with special key
+              metadataMap['DocumentProperty'] = meta;
+            }
+          }
         } catch (e) {
           console.warn('Failed to parse', path, e);
         }
       }
     });
 
+
+
     // 3. Build tree recursively
     const body = xmlDoc.getElementsByTagName('w:body')[0];
     const results = this.buildTree(body, metadataMap);
 
     this.controls = results;
+    // Add DocumentProperty node if exists
+    if (metadataMap['DocumentProperty']) {
+      const meta = metadataMap['DocumentProperty'];
+
+      const attributes: AttributeRow[] = [];
+
+      Object.keys(meta).forEach((key) => {
+        attributes.push({
+          name: key,
+          value: String(meta[key] ?? ''),
+        });
+      });
+
+      this.controls.unshift({
+        title: 'DocumentProperty',
+        tag: '',
+        attributes,
+        children: [],
+        expanded: false,
+      });
+    }
     this.selectedControl = results[0];
     this.loading = false;
     this.cdr.markForCheck();
@@ -162,7 +226,7 @@ export class MetadataViewerComponent {
     }
 
     return {
-      title: `${alias} - ${meta['Tag']}`,
+      title: meta['Tag'] ? `${alias} - ${meta['Tag']}` : alias,
       tag,
       attributes,
       children,
@@ -177,5 +241,15 @@ export class MetadataViewerComponent {
   toggleNode(node: ContentControl, event: Event) {
     event.stopPropagation();
     node.expanded = !node.expanded;
+  }
+
+  decodeBaseValue(attr: AttributeRow) {
+    try {
+      const decoded = atob(attr.value);
+      attr.decoded = decoded;
+      this.cdr.markForCheck();
+    } catch (e) {
+      attr.decoded = 'Invalid Base64 content';
+    }
   }
 }
