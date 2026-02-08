@@ -265,3 +265,41 @@ $border: #e0e0e0;
   margin-top: 10px;
   border-width: 3px;
 }
+
+.drop-zone {
+  flex: 1;
+  margin: 40px auto;
+  width: 90%;
+  height: 220px;
+  border: 2px dashed #c5cbe3;
+  border-radius: 14px;
+  background: #f8f9ff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #5a5f73;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #3f51b5;
+    background: #eef1ff;
+  }
+
+  .drop-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+
+  .drop-text {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .drop-subtext {
+    font-size: 13px;
+    color: #888;
+  }
+}

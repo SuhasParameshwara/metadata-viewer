@@ -9,21 +9,32 @@
 
     <label class="upload-btn">
       Upload Word File
-      <input type="file" accept=".docx" (change)="onFileSelected($event)" />
+      <input type="file" accept=".docx,.doc" (change)="onFileSelected($event)" />
     </label>
   </header>
 
+  <!-- Loading -->
   <div class="loading" *ngIf="loading">
     Processing document...
   </div>
 
-  <div class="empty-state" *ngIf="!loading && !controls.length">
-    <div class="empty-icon">📄</div>
-    <div class="empty-text">
-      Please upload a Word file to view content control metadata
+  <!-- Drag & Drop Zone -->
+  <div
+    class="drop-zone"
+    *ngIf="!loading && !controls.length"
+    (dragover)="$event.preventDefault()"
+    (drop)="onFileDrop($event)"
+  >
+    <div class="drop-icon">📄</div>
+    <div class="drop-text">
+      Drag & drop a Word file here
+    </div>
+    <div class="drop-subtext">
+      or click "Upload Word File" button
     </div>
   </div>
 
+  <!-- Main layout -->
   <div class="main-layout" *ngIf="controls.length">
     <!-- TREE SIDEBAR -->
     <aside class="sidebar tree-sidebar">
@@ -34,18 +45,24 @@
               {{ c.expanded ? '▼' : '▶' }}
             </span>
 
-            <span class="tree-label" (click)="selectControl(c); $event.stopPropagation()"
-              [class.active]="selectedControl === c">
+            <span
+              class="tree-label"
+              (click)="selectControl(c); $event.stopPropagation()"
+              [class.active]="selectedControl === c"
+            >
               {{ c.title }}
             </span>
           </div>
 
           <div class="tree-children" *ngIf="c.expanded">
-            <ng-container *ngTemplateOutlet="treeTemplate; context: { $implicit: c.children }"></ng-container>
+            <ng-container
+              *ngTemplateOutlet="treeTemplate; context: { $implicit: c.children }"
+            ></ng-container>
           </div>
         </div>
       </ng-container>
 
+      <!-- Recursive template -->
       <ng-template #treeTemplate let-nodes>
         <div *ngFor="let node of nodes" class="tree-node">
           <div class="tree-row" (click)="toggleNode(node, $event)">
@@ -53,14 +70,19 @@
               {{ node.expanded ? '▼' : '▶' }}
             </span>
 
-            <span class="tree-label" (click)="selectControl(node); $event.stopPropagation()"
-              [class.active]="selectedControl === node">
+            <span
+              class="tree-label"
+              (click)="selectControl(node); $event.stopPropagation()"
+              [class.active]="selectedControl === node"
+            >
               {{ node.title }}
             </span>
           </div>
 
           <div class="tree-children" *ngIf="node.expanded">
-            <ng-container *ngTemplateOutlet="treeTemplate; context: { $implicit: node.children }"></ng-container>
+            <ng-container
+              *ngTemplateOutlet="treeTemplate; context: { $implicit: node.children }"
+            ></ng-container>
           </div>
         </div>
       </ng-template>
@@ -83,32 +105,34 @@
               <td class="attr-name">{{ attr.name }}</td>
 
               <td class="attr-value">
-                <!-- Normal display -->
+                <!-- Normal attributes -->
                 <div *ngIf="attr.name !== 'BaseValue'">
                   {{ attr.value }}
                 </div>
 
-                <!-- BaseValue with decode button -->
-                <div *ngIf="attr.name === 'BaseValue' && selectedControl.title.includes('Clause')">
-                  <div class="base-value-container">
-                    <div class="base64-text">
-                      {{ attr.value }}
-                    </div>
+                <!-- BaseValue with decode -->
+                <div
+                  *ngIf="attr.name === 'BaseValue' && selectedControl.title.includes('Clause')"
+                  class="base-value-container"
+                >
+                  <div class="base64-text">
+                    {{ attr.value }}
+                  </div>
 
-                    <button class="decode-btn" (click)="decodeBaseValue(attr)">
-                      Decode
-                    </button>
+                  <button
+                    class="decode-btn"
+                    (click)="decodeBaseValue(attr)"
+                  >
+                    Decode
+                  </button>
 
-                    <div class="decoded-output" *ngIf="attr.decoded">
-                      {{ attr.decoded }}
-                    </div>
+                  <div class="decoded-output" *ngIf="attr.decoded">
+                    {{ attr.decoded }}
                   </div>
                 </div>
               </td>
             </tr>
           </tbody>
-
-
         </table>
       </div>
     </section>

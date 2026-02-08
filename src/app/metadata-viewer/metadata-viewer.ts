@@ -35,6 +35,11 @@ export class MetadataViewerComponent {
     const file: File = event.target.files[0];
     if (!file) return;
 
+    if (!this.isValidWordFile(file)) {
+      alert('Only .doc or .docx files are supported.');
+      return;
+    }
+
     this.selectedFileName = file.name;
     this.loading = true;
 
@@ -251,5 +256,34 @@ export class MetadataViewerComponent {
     } catch (e) {
       attr.decoded = 'Invalid Base64 content';
     }
+  }
+
+  onFileDrop(event: DragEvent) {
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+
+    if (!this.isValidWordFile(file)) {
+      alert('Only .doc or .docx files are supported.');
+      return;
+    }
+
+    const fakeEvent = { target: { files: [file] } };
+    this.onFileSelected(fakeEvent);
+  }
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  private isValidWordFile(file: File): boolean {
+    const name = file.name.toLowerCase();
+    return name.endsWith('.doc') || name.endsWith('.docx');
   }
 }
