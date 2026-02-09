@@ -212,7 +212,8 @@ export class MetadataViewerComponent {
     const alias = aliasNode?.getAttribute('w:val') || '';
     const tag = tagNode?.getAttribute('w:val') || '';
 
-    const meta = metadataMap[id] || {};
+    const unsignedId = this.toUnsignedId(id);
+    const meta = metadataMap[id] || metadataMap[unsignedId] || {};
 
 
     // ---- COUNT LOGIC ----
@@ -227,7 +228,8 @@ export class MetadataViewerComponent {
     }
 
     const attributes: AttributeRow[] = [
-      { name: 'ID (Unsigned)', value: id },
+      { name: 'ID (Unsigned)', value: this.toUnsignedId(id) },
+      { name: 'SignedID', value: id },
       { name: 'Alias', value: alias },
     ];
 
@@ -302,5 +304,13 @@ export class MetadataViewerComponent {
   private isValidWordFile(file: File): boolean {
     const name = file.name.toLowerCase();
     return name.endsWith('.doc') || name.endsWith('.docx');
+  }
+
+  private toUnsignedId(id: string): string {
+    const num = Number(id);
+    if (isNaN(num)) return id;
+
+    // convert signed 32-bit to unsigned
+    return (num >>> 0).toString();
   }
 }
