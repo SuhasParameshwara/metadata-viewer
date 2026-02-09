@@ -112,13 +112,13 @@
                 </div>
 
                 <!-- BaseValue with decode -->
-                <div *ngIf="attr.name === 'BaseValue' && selectedControl.title.includes('Clause')"
-                  class="base-value-container">
+                <div *ngIf="attr.name === 'BaseValue'" class="base-value-container">
                   <div class="base64-text">
                     {{ attr.value }}
                   </div>
 
-                  <button class="decode-btn" (click)="decodeBaseValue(attr)">
+                  <button class="decode-btn" (click)="decodeBaseValue(attr)"
+                    *ngIf="selectedControl.title.includes('Clause')">
                     Decode
                   </button>
 
