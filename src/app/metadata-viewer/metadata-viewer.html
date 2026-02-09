@@ -118,7 +118,7 @@
                   </div>
 
                   <button class="decode-btn" (click)="decodeBaseValue(attr)"
-                    *ngIf="selectedControl.title.includes('Clause')">
+                    *ngIf="selectedControl.title.includes('Clause') && attr.value">
                     Decode
                   </button>
 
