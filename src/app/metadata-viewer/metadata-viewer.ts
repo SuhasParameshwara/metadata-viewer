@@ -33,8 +33,53 @@ export class MetadataViewerComponent {
   totalFields = 0;
   totalClauses = 0;
   totalTables = 0;
+  searchText = '';
+  filteredControls: ContentControl[] = [];
+  objectTypeKey = '';
+  isDragging = false;
+  dragCounter = 0;
+
+
+  onGlobalDragEnter(event: DragEvent) {
+    event.preventDefault();
+    this.dragCounter++;
+    this.isDragging = true;
+  }
+
+  onGlobalDragLeave(event: DragEvent) {
+    event.preventDefault();
+    this.dragCounter--;
+
+    if (this.dragCounter <= 0) {
+      this.isDragging = false;
+      this.dragCounter = 0;
+    }
+  }
+
+  onGlobalDragOver(event: DragEvent) {
+    event.preventDefault();
+  }
+
+  onGlobalDrop(event: DragEvent) {
+    event.preventDefault();
+    this.isDragging = false;
+    this.dragCounter = 0;
+
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+
+    if (!this.isValidWordFile(file)) {
+      alert('Only .doc or .docx files are supported.');
+      return;
+    }
+
+    const fakeEvent = { target: { files: [file] } };
+    this.onFileSelected(fakeEvent);
+  }
+
 
   async onFileSelected(event: any) {
+
     const file: File = event.target.files[0];
     if (!file) return;
 
@@ -47,6 +92,7 @@ export class MetadataViewerComponent {
     this.totalTables = 0;
     this.selectedFileName = file.name;
     this.loading = true;
+    this.objectTypeKey = '';
 
     const buffer = await file.arrayBuffer();
     const zip = unzipSync(new Uint8Array(buffer));
@@ -138,6 +184,9 @@ export class MetadataViewerComponent {
 
               // store with special key
               metadataMap['DocumentProperty'] = meta;
+              // extract SF_OBJECT_TYPE_KEY for header badge
+              this.objectTypeKey = meta['SF_OBJECT_TYPE_KEY'] || '';
+
             }
           }
         } catch (e) {
@@ -176,8 +225,70 @@ export class MetadataViewerComponent {
     }
     this.selectedControl = results[0];
     this.loading = false;
+    this.filteredControls = this.controls;
     this.cdr.markForCheck();
+
   }
+
+  onSearchChange(value: string) {
+    this.searchText = value.trim().toLowerCase();
+
+    if (!this.searchText) {
+      // reset tree
+      this.filteredControls = this.controls;
+      this.collapseAll(this.filteredControls);
+      this.selectedControl = this.filteredControls[0];
+      return;
+    }
+
+    this.filteredControls = this.filterTree(this.controls, this.searchText);
+    this.selectedControl = this.filteredControls[0];
+  }
+
+  clearSearch() {
+    this.searchText = '';
+    this.filteredControls = this.filterTree(this.controls, this.searchText);
+    this.selectedControl = this.filteredControls[0];
+  }
+
+
+  /** Recursively filter tree nodes */
+  private filterTree(
+    nodes: ContentControl[],
+    search: string
+  ): ContentControl[] {
+    const result: ContentControl[] = [];
+
+    for (const node of nodes) {
+      const titleMatch = node.title?.toLowerCase().includes(search);
+
+      let matchedChildren: ContentControl[] = [];
+      if (node.children?.length) {
+        matchedChildren = this.filterTree(node.children, search);
+      }
+
+      if (titleMatch || matchedChildren.length) {
+        result.push({
+          ...node,
+          expanded: matchedChildren.length > 0,
+          children: matchedChildren,
+        });
+      }
+    }
+
+    return result;
+  }
+
+  /** Collapse tree when search is cleared */
+  private collapseAll(nodes: ContentControl[]) {
+    for (const node of nodes) {
+      node.expanded = false;
+      if (node.children?.length) {
+        this.collapseAll(node.children);
+      }
+    }
+  }
+
 
   // Recursive tree builder
   private buildTree(parent: Element, metadataMap: Record<string, any>): ContentControl[] {

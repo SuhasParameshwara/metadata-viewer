@@ -1,10 +1,29 @@
-<div class="app-container">
+<div class="app-container" (dragenter)="onGlobalDragEnter($event)" (dragleave)="onGlobalDragLeave($event)"
+  (dragover)="onGlobalDragOver($event)" (drop)="onGlobalDrop($event)">
+
+  <!-- Floating drag overlay -->
+  <div class="drag-overlay" *ngIf="isDragging && selectedFileName">
+    <div class="overlay-card">
+      <div class="overlay-icon">📄</div>
+      <div class="overlay-text">Drop Word file here</div>
+      <div class="overlay-subtext">
+        Only .doc or .docx files are supported
+      </div>
+    </div>
+  </div>
+
+  <!-- Drag & Drop Zone -->
   <header class="app-header compact">
     <div class="header-left">
       <h1>Metadata Viewer 2.0</h1>
       <div class="file-name" *ngIf="selectedFileName">
         {{ selectedFileName }}
+
+        <span class="object-badge" *ngIf="objectTypeKey">
+          {{ objectTypeKey }}
+        </span>
       </div>
+
     </div>
 
     <div class="header-right">
@@ -32,10 +51,7 @@
   <div class="loading" *ngIf="loading">
     Processing document...
   </div>
-
-  <!-- Drag & Drop Zone -->
-  <div class="drop-zone" *ngIf="!loading && !controls.length" (dragover)="$event.preventDefault()"
-    (drop)="onFileDrop($event)">
+  <div class="drop-zone" *ngIf="!loading && !selectedFileName" (dragover)="$event.preventDefault()" (drop)="onFileDrop($event)">
     <div class="drop-icon">📄</div>
     <div class="drop-text">
       Drag & drop a Word file here
@@ -44,29 +60,39 @@
       or click "Upload Word File" button
     </div>
   </div>
-
   <!-- Main layout -->
   <div class="main-layout" *ngIf="controls.length">
     <!-- TREE SIDEBAR -->
     <aside class="sidebar tree-sidebar">
-      <ng-container *ngFor="let c of controls">
-        <div class="tree-node">
-          <div class="tree-row" (click)="toggleNode(c, $event)">
-            <span class="tree-toggle" *ngIf="c.children?.length">
-              {{ c.expanded ? '▼' : '▶' }}
-            </span>
+      <div class="tree-search">
+        <input type="text" placeholder="Search..." [value]="searchText" (input)="onSearchChange($event.target.value)" />
+      </div>
+      @if(filteredControls.length > 0){
+      <div class="node-items">
+        <ng-container *ngFor="let c of filteredControls">
+          <div class="tree-node">
+            <div class="tree-row" (click)="toggleNode(c, $event)">
+              <span class="tree-toggle" *ngIf="c.children?.length">
+                {{ c.expanded ? '▼' : '▶' }}
+              </span>
 
-            <span class="tree-label" (click)="selectControl(c); $event.stopPropagation()"
-              [class.active]="selectedControl === c">
-              {{ c.title }}
-            </span>
-          </div>
+              <span class="tree-label" (click)="selectControl(c); $event.stopPropagation()"
+                [class.active]="selectedControl === c">
+                {{ c.title }}
+              </span>
+            </div>
 
-          <div class="tree-children" *ngIf="c.expanded">
-            <ng-container *ngTemplateOutlet="treeTemplate; context: { $implicit: c.children }"></ng-container>
+            <div class="tree-children" *ngIf="c.expanded">
+              <ng-container *ngTemplateOutlet="treeTemplate; context: { $implicit: c.children }"></ng-container>
+            </div>
           </div>
-        </div>
-      </ng-container>
+        </ng-container>
+      </div>
+      } @else{
+      <div class="no-results" *ngIf="filteredControls.length === 0">
+        No results found.
+      </div>
+      }
 
       <!-- Recursive template -->
       <ng-template #treeTemplate let-nodes>
@@ -130,6 +156,19 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <div class="no-results" *ngIf="controls.length && !filteredControls.length">
+        <div class="no-results-card">
+          <div class="no-results-icon">🔍</div>
+          <h3>No results found</h3>
+          <p>
+            We couldn’t find any fields, clauses, or document properties
+            matching your search.
+          </p>
+          <button class="clear-btn" (click)="clearSearch()">
+            Clear search
+          </button>
+        </div>
       </div>
     </section>
   </div>
