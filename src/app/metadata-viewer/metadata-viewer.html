@@ -51,7 +51,8 @@
   <div class="loading" *ngIf="loading">
     Processing document...
   </div>
-  <div class="drop-zone" *ngIf="!loading && !selectedFileName" (dragover)="$event.preventDefault()" (drop)="onFileDrop($event)">
+  <div class="drop-zone" *ngIf="!loading && !selectedFileName" (dragover)="$event.preventDefault()"
+    (drop)="onFileDrop($event)">
     <div class="drop-icon">📄</div>
     <div class="drop-text">
       Drag & drop a Word file here
@@ -66,6 +67,13 @@
     <aside class="sidebar tree-sidebar">
       <div class="tree-search">
         <input type="text" placeholder="Search..." [value]="searchText" (input)="onSearchChange($event.target.value)" />
+        <button *ngIf="searchText" class="clear-btn" (click)="clearSearch()" aria-label="Clear search"
+          title="Clear search">
+          ✕
+        </button>
+      </div>
+      <div class="tree-hint">
+        Use <span class="key">↑</span> or <span class="key">↓</span> to navigate
       </div>
       @if(filteredControls.length > 0){
       <div class="node-items">
@@ -77,7 +85,7 @@
               </span>
 
               <span class="tree-label" (click)="selectControl(c); $event.stopPropagation()"
-                [class.active]="selectedControl === c">
+                [class.active]="selectedControl === c || selectedTreeNode === c" [id]="'tree-node-' + c.id">
                 {{ c.title }}
               </span>
             </div>
@@ -103,7 +111,7 @@
             </span>
 
             <span class="tree-label" (click)="selectControl(node); $event.stopPropagation()"
-              [class.active]="selectedControl === node">
+              [class.active]="selectedControl === node || selectedTreeNode === node" [id]="'tree-node-' + node.id">
               {{ node.title }}
             </span>
           </div>

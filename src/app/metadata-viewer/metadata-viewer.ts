@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { unzipSync, strFromU8, gunzipSync } from 'fflate';
 
@@ -9,6 +9,7 @@ interface AttributeRow {
 }
 
 interface ContentControl {
+  id: string;
   title: string;
   tag: string;
   attributes: AttributeRow[];
@@ -38,6 +39,78 @@ export class MetadataViewerComponent {
   objectTypeKey = '';
   isDragging = false;
   dragCounter = 0;
+  selectedTreeNode?: ContentControl;
+  selectedAttrIndex = 0;
+
+  @HostListener('window:keydown', ['$event'])
+  handleTreeKeyboard(event: KeyboardEvent) {
+    if (!this.filteredControls.length) return;
+
+    if (!this.selectedTreeNode) {
+      this.selectedTreeNode = this.filteredControls[0];
+      this.selectControl(this.selectedTreeNode);
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.moveToNextNode();
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.moveToPreviousNode();
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.selectedTreeNode.expanded = !this.selectedTreeNode.expanded;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private getVisibleNodes(): ContentControl[] {
+    const result: ContentControl[] = [];
+
+    const walk = (nodes: ContentControl[]) => {
+      for (const node of nodes) {
+        result.push(node);
+        if (node.expanded && node.children?.length) {
+          walk(node.children);
+        }
+      }
+    };
+
+    walk(this.filteredControls);
+    return result;
+  }
+
+  private moveToNextNode() {
+    const nodes = this.getVisibleNodes();
+    const index = nodes.indexOf(this.selectedTreeNode!);
+
+    if (index < nodes.length - 1) {
+      this.selectedTreeNode = nodes[index + 1];
+      this.selectControl(this.selectedTreeNode);
+
+
+      setTimeout(() => this.scrollToSelectedNode());
+    }
+  }
+
+  private moveToPreviousNode() {
+    const nodes = this.getVisibleNodes();
+    const index = nodes.indexOf(this.selectedTreeNode!);
+
+    if (index > 0) {
+      this.selectedTreeNode = nodes[index - 1];
+      this.selectControl(this.selectedTreeNode);
+
+
+      setTimeout(() => this.scrollToSelectedNode());
+    }
+  }
+
 
 
   onGlobalDragEnter(event: DragEvent) {
@@ -216,6 +289,7 @@ export class MetadataViewerComponent {
       });
 
       this.controls.unshift({
+        id: 'DocumentProperty',
         title: 'Document Property',
         tag: '',
         attributes,
@@ -226,6 +300,7 @@ export class MetadataViewerComponent {
     this.selectedControl = results[0];
     this.loading = false;
     this.filteredControls = this.controls;
+    this.selectedTreeNode = this.filteredControls[0];
     this.cdr.markForCheck();
 
   }
@@ -238,17 +313,20 @@ export class MetadataViewerComponent {
       this.filteredControls = this.controls;
       this.collapseAll(this.filteredControls);
       this.selectedControl = this.filteredControls[0];
+      this.selectedTreeNode = this.filteredControls[0];
       return;
     }
 
     this.filteredControls = this.filterTree(this.controls, this.searchText);
     this.selectedControl = this.filteredControls[0];
+    this.selectedTreeNode = this.filteredControls[0];
   }
 
   clearSearch() {
     this.searchText = '';
     this.filteredControls = this.filterTree(this.controls, this.searchText);
     this.selectedControl = this.filteredControls[0];
+    this.selectedTreeNode = this.filteredControls[0];
   }
 
 
@@ -267,10 +345,20 @@ export class MetadataViewerComponent {
         matchedChildren = this.filterTree(node.children, search);
       }
 
-      if (titleMatch || matchedChildren.length) {
+      // CASE 1: Parent matches → keep full subtree
+      if (titleMatch) {
         result.push({
           ...node,
-          expanded: matchedChildren.length > 0,
+          expanded: true,
+          children: node.children,
+        });
+      }
+
+      // CASE 2: Only children match
+      if (matchedChildren.length) {
+        result.push({
+          ...node,
+          expanded: true,
           children: matchedChildren,
         });
       }
@@ -310,6 +398,24 @@ export class MetadataViewerComponent {
 
     return result;
   }
+
+  private scrollToSelectedNode() {
+    if (!this.selectedTreeNode) return;
+
+    const id = this.selectedTreeNode.attributes?.[0]?.value;
+    if (!id) return;
+
+    const el = document.getElementById('tree-node-' + id);
+
+    if (el) {
+      el.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end',
+        
+      });
+    }
+  }
+
 
   // Create single control with recursion
   private createControl(node: Element, metadataMap: Record<string, any>): ContentControl {
@@ -361,6 +467,7 @@ export class MetadataViewerComponent {
     }
 
     return {
+      id: unsignedId,
       title: meta['Tag'] ? `${alias} - ${meta['Tag']}` : alias,
       tag,
       attributes,
@@ -371,11 +478,14 @@ export class MetadataViewerComponent {
 
   selectControl(control: ContentControl) {
     this.selectedControl = control;
+    this.selectedTreeNode = control;
+    this.selectedAttrIndex = 0;
   }
 
   toggleNode(node: ContentControl, event: Event) {
     event.stopPropagation();
     node.expanded = !node.expanded;
+    this.selectControl(node);
   }
 
   decodeBaseValue(attr: AttributeRow) {
